@@ -178,8 +178,8 @@ class FCDSolver(object):
         for i in range(c_dim):
             if dataset == 'L8Biome':
                 # Visualize translation to both cloudy and non-cloudy domain
-                c_trg_list.append(torch.zeros_like(c_org).to(self.device))
-                c_trg = torch.ones_like(c_org)
+                c_trg_list.append(torch.zeros_like(c_org.unsqueeze(1)).to(self.device))
+                c_trg = torch.ones_like(c_org.unsqueeze(1))
 
             c_trg_list.append(c_trg.to(self.device))
         return c_trg_list
@@ -243,10 +243,10 @@ class FCDSolver(object):
                 c_trg = label_trg.clone()
 
             x_real = x_real.to(self.device)  # Input images.
-            c_org = c_org.to(self.device)  # Original domain labels.
-            c_trg = c_trg.to(self.device)  # Target domain labels.
-            label_org = label_org.to(self.device)  # Labels for computing classification loss.
-            label_trg = label_trg.to(self.device)  # Labels for computing classification loss.
+            c_org = c_org.to(self.device).unsqueeze(1).to(torch.float32)   # Original domain labels.
+            c_trg = c_trg.to(self.device).unsqueeze(1).to(torch.float32)   # Target domain labels.
+            label_org = label_org.to(self.device).unsqueeze(-1)  # Labels for computing classification loss.
+            label_trg = label_trg.to(self.device).unsqueeze(-1)  # Labels for computing classification loss.
 
             # =================================================================================== #
             #                             2. Train the discriminator                              #
