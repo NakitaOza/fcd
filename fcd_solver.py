@@ -1,3 +1,6 @@
+import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
 import pickle
 import shutil
 import random
@@ -38,7 +41,7 @@ class FCDSolver(object):
         self.train_loader = get_loader(config.l8biome_image_dir, config.batch_size,
                                        'L8Biome', 'train', config.num_workers, config.num_channels)
         self.val_loader = get_loader(config.l8biome_image_dir, config.batch_size,
-                                     'L8Biome', 'val', config.num_workers, config.num_channels, mask_file='mask.tif')
+                                     'L8Biome', 'val', config.num_workers, config.num_channels, mask_file='mask.tif', ret_mask=True)
 
         # Model configurations.
         self.c_dim = config.c_dim
@@ -133,6 +136,13 @@ class FCDSolver(object):
             self.tensorboard_writer = SummaryWriter(log_dir=os.path.join('runs', self.config.experiment_name))
         else:
             self.tensorboard_writer = SummaryWriter()
+
+    
+    # def forward(self, x_real, c_org, c_trg, label_org, label_trg):
+    #     x_fake = self.G(x_real, c_trg)
+    #     out_src, out_cls, _ = self.D(x_fake)
+
+    #     return out_src, out_cls
 
     def update_lr(self, g_lr, d_lr):
         """Decay learning rates of the generator and discriminator."""
@@ -253,19 +263,19 @@ class FCDSolver(object):
             # =================================================================================== #
 
             # Compute loss with real images.
-            out_src, out_cls = self.D(x_real)
+            out_src, out_cls, _ = self.D(x_real)
             d_loss_real = - torch.mean(out_src)
             d_loss_cls = self.classification_loss(out_cls, label_org, self.dataset)
 
             # Compute loss with fake images.
             x_fake = self.G(x_real, c_trg)
-            out_src, out_cls = self.D(x_fake.detach())
+            out_src, out_cls, _ = self.D(x_fake.detach())
             d_loss_fake = torch.mean(out_src)
 
             # Compute loss for gradient penalty.
             alpha = torch.rand(x_real.size(0), 1, 1, 1).to(self.device)
             x_hat = (alpha * x_real.data + (1 - alpha) * x_fake.data).requires_grad_(True)
-            out_src, _ = self.D(x_hat)
+            out_src, _, _ = self.D(x_hat)
             d_loss_gp = self.gradient_penalty(out_src, x_hat)
 
             # Backward and optimize.
@@ -288,13 +298,13 @@ class FCDSolver(object):
             if (i + 1) % self.n_critic == 0:
                 # Original-to-target domain.
                 x_fake = self.G(x_real, c_trg)
-                out_src, out_cls = self.D(x_fake)
+                out_src, out_cls, x_fake_feats = self.D(x_fake)
                 g_loss_fake = - torch.mean(out_src)
                 g_loss_cls = self.classification_loss(out_cls, label_trg, self.dataset)
 
                 # Original-to-original domain.
                 x_fake_id = self.G(x_real, c_org)
-                out_src_id, out_cls_id = self.D(x_fake_id)
+                out_src_id, out_cls_id, x_fake_id_feats = self.D(x_fake_id)
                 g_loss_fake_id = - torch.mean(out_src_id)
                 g_loss_cls_id = self.classification_loss(out_cls_id, label_org, self.dataset)
                 g_loss_id = torch.mean(torch.abs(x_real - x_fake_id))

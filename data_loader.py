@@ -148,7 +148,9 @@ class L8SparcsDataset(data.Dataset):
 
 
 def get_loader(image_dir, batch_size=16, dataset='L8Biome', mode='train',
-               num_workers=4, num_channels=3, mask_file=None, keep_ratio=1.0, shuffle=None, force_no_aug=False, only_cloudy=False, pin_memory=True):
+               num_workers=4, num_channels=3, mask_file=None, ret_mask=False, keep_ratio=1.0, 
+               shuffle=None, force_no_aug=False, only_cloudy=False, pin_memory=True,
+               use_h5=False, rank=None):
     """Build and return a data loader."""
     transform = []
     if mode == 'train' and not force_no_aug:

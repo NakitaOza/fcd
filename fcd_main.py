@@ -20,11 +20,11 @@ def main(config):
 
     # Create directories if not exist.
     if not os.path.exists(config.model_save_dir):
-        os.makedirs(config.model_save_dir)
+        os.makedirs(config.model_save_dir, exist_ok=True)
     if not os.path.exists(config.sample_dir):
-        os.makedirs(config.sample_dir)
+        os.makedirs(config.sample_dir, exist_ok=True)
     if not os.path.exists(config.result_dir):
-        os.makedirs(config.result_dir)
+        os.makedirs(config.result_dir, exist_ok=True)
 
     if config.mode == 'eval_fmask':
         evaluate.test_landsat8_biome_fmask(config)

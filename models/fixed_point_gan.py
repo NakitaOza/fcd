@@ -72,22 +72,25 @@ class Discriminator(nn.Module):
         super(Discriminator, self).__init__()
         layers = []
         layers.append(nn.Conv2d(num_channels, conv_dim, kernel_size=4, stride=2, padding=1))
-        layers.append(nn.LeakyReLU(0.01))
+        layers.append(nn.LeakyReLU(inplace=True))
 
         curr_dim = conv_dim
         for i in range(1, repeat_num):
             layers.append(nn.Conv2d(curr_dim, curr_dim*2, kernel_size=4, stride=2, padding=1))
-            layers.append(nn.LeakyReLU(0.01))
+            layers.append(nn.LeakyReLU(inplace=True))
             curr_dim = curr_dim * 2
 
         kernel_size = int(image_size / np.power(2, repeat_num))
-        self.main = nn.Sequential(*layers)
+        feature_layers = 7
+        self.features = nn.Sequential(*layers[:feature_layers])
+        self.main = nn.Sequential(*layers[feature_layers:])
         self.conv1 = nn.Conv2d(curr_dim, 1, kernel_size=3, stride=1, padding=1, bias=False)
         self.conv2 = nn.Conv2d(curr_dim, c_dim, kernel_size=kernel_size, bias=False)
         
     def forward(self, x):
-        h = self.main(x)
+        features = self.features(x)
+        h = self.main(features)
         out_src = self.conv1(h)
         out_cls = self.conv2(h)
-        return out_src, out_cls.view(out_cls.size(0), out_cls.size(1))
+        return out_src, out_cls.view(out_cls.size(0), out_cls.size(1)), features
 
